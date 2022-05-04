@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext } from 'react';
+import { v4 as uuid } from 'uuid';
 import './App.css';
 import searchImg from './img/search.svg';
 import cloudImg from './img/cloud.svg';
 import heartImg from './img/heart.svg';
 import rainImg from './img/rain.svg';
 export default App;
+
+const AppContext = React.createContext([]);
 
 const URLS = {
 	WEATHER_MAIN_INFO: 'http://api.openweathermap.org/data/2.5/weather',
@@ -34,7 +37,6 @@ function App() {
 		fetch(weatherInfoUrl)
 		.then(response => response.json())
 		.then(city => setCity(city))
-		// .then(city => console.log(city))
 		.catch(error => alert('Error: ' + error));
 	}
 
@@ -43,39 +45,32 @@ function App() {
 		fetch(forecastInfoUrl)
 		.then(response => response.json())
 		.then(city => setForecastCity(city.list))
-		// .then(city => console.log((city.list)))
 		.catch(error => alert('Error: ' + error));
 	}
 
 	return(
-		<div className='weather_app'>
-			<FindCityInput 
-			cityName={cityName}
-			setCity = {setCity}
-			showCityWeather={showCityWeather}
-			showWeatherForecast={showWeatherForecast}
-			forecastCity={forecastCity}
-			setForecastCity={setForecastCity}/>
-			<Content 
-			cityName={cityName}
-			setCity={setCity}
-			favouriteCity={favouriteCity} 
-			setFavouriteCity={setFavouriteCity}
-			showCityWeather={showCityWeather}
-			showWeatherForecast={showWeatherForecast}
-			forecastCity={forecastCity}
-			setForecastCity={setForecastCity}/>
-		</div>
+		<AppContext.Provider value={{cityName, setCity, favouriteCity, setFavouriteCity, forecastCity, setForecastCity}}>
+			<div className='weather_app'>
+				<FindCityInput 
+				showCityWeather={showCityWeather}
+				showWeatherForecast={showWeatherForecast}/>
+				<Content 
+				showCityWeather={showCityWeather}
+				showWeatherForecast={showWeatherForecast}/>
+			</div>
+		</AppContext.Provider>
 	);
 }
 
-function FindCityInput({cityName, setCity, showCityWeather, showWeatherForecast, forecastCity, setForecastCity}) {
+function FindCityInput({showCityWeather, showWeatherForecast}) {
+	const context = useContext(AppContext);
+
 	function handleSubmit(event) {
 		event.preventDefault();
 	}
 	function handleChange(e) {
-		setCity(e.target.value);
-		setForecastCity(e.target.value);
+		context.setCity(e.target.value);
+		context.setForecastCity(e.target.value);
 	}
 	return(
 		<form onSubmit={handleSubmit}>
@@ -97,30 +92,18 @@ function SearchCityButton({showCityWeather, showWeatherForecast}) {
 	);
 }
 
-function Content({cityName, setCity, favouriteCity, setFavouriteCity, showCityWeather, forecastCity, setForecastCity, showWeatherForecast}) {
+function Content({showCityWeather, showWeatherForecast}) {
 	return(
 		<div className='content'>
 			<LeftSide 
-			cityName={cityName}
-			setCity = {setCity}
-			favouriteCity={favouriteCity} 
-			setFavouriteCity={setFavouriteCity}
-			showWeatherForecast={showWeatherForecast}
-			forecastCity={forecastCity}
-			setForecastCity={setForecastCity}/>
+			showWeatherForecast={showWeatherForecast}/>
 			<RightSide
-			cityName={cityName}
-			setCity = {setCity}
-			favouriteCity={favouriteCity} 
-			setFavouriteCity={setFavouriteCity}
-			showCityWeather={showCityWeather}
-			forecastCity={forecastCity}
-			setForecastCity={setForecastCity}/>
+			showCityWeather={showCityWeather}/>
 		</div>
 	)
 }
 
-function LeftSide({cityName, setCity, favouriteCity, setFavouriteCity, forecastCity, setForecastCity, showWeatherForecast}) {
+function LeftSide({showWeatherForecast}) {
 	const [activeTab, setActiveTab] = useState(1);
 
 	function changeTab(tabsNum) {
@@ -130,20 +113,12 @@ function LeftSide({cityName, setCity, favouriteCity, setFavouriteCity, forecastC
 	return(
 		<div className='left_side'>
 			<WeatherInfo 
-			activeTab = {activeTab}
-			cityName={cityName}
-			setCity = {setCity}
-			favouriteCity={favouriteCity} 
-			setFavouriteCity={setFavouriteCity}/>
+			activeTab = {activeTab}/>
 			<WeatherDetailedInfo 
-			activeTab = {activeTab}
-			cityName={cityName}/>
+			activeTab = {activeTab}/>
 			<WeatherForecast 
 			activeTab = {activeTab}
-			cityName={cityName}
-			showWeatherForecast={showWeatherForecast}
-			forecastCity={forecastCity}
-			setForecastCity={setForecastCity}/>
+			showWeatherForecast={showWeatherForecast}/>
 			<Tabs 
 			activeTab = {activeTab}
 			changeTab = {changeTab}/>
@@ -151,13 +126,14 @@ function LeftSide({cityName, setCity, favouriteCity, setFavouriteCity, forecastC
 	);
 }
 
-function RightSide({cityName, setCity, favouriteCity, setFavouriteCity, showCityWeather, forecastCity, setForecastCity}) {
+function RightSide({showCityWeather}) {
+	const context = useContext(AppContext);
+
 	function showCurrentCityWeather(currentCity) {
 		const weatherInfoUrl = `${URLS.WEATHER_MAIN_INFO}?q=${currentCity}&appid=${URLS.API_KEY}&units=metric`;
 		fetch(weatherInfoUrl)
 		.then(response => response.json())
-		// .then(response => console.log(response.status))
-		.then(city => setCity(city))
+		.then(city => context.setCity(city))
 		.catch(error => alert('Error: ' + error));
 	}
 
@@ -165,8 +141,7 @@ function RightSide({cityName, setCity, favouriteCity, setFavouriteCity, showCity
 		const forecastInfoUrl = `${URLS.WEATHER_FORECAST}?q=${currentCity}&appid=${URLS.API_KEY}&units=metric`;
 		fetch(forecastInfoUrl)
 		.then(response => response.json())
-		.then(city => setForecastCity(city.list))
-		// .then(city => console.log((city.list)))
+		.then(city => context.setForecastCity(city.list))
 		.catch(error => alert('Error: ' + error));
 	}
 
@@ -176,10 +151,10 @@ function RightSide({cityName, setCity, favouriteCity, setFavouriteCity, showCity
 				Added Locations:
 			</div>
 			<div className='location_list'>
-				{[...favouriteCity].map(value =>
+				{[...context.favouriteCity].map(value =>
 					<div className='location' key={value.name}>
 						<span onClick={(e) => {showCurrentCityWeather(e.target.textContent); showCurrentWeatherForecast(e.target.textContent)}}>{value.name}</span>
-						<span className='cross' onClick={() => setFavouriteCity(favouriteCity.filter(item => item.sys.id !== value.sys.id))}></span>
+						<span className='cross' onClick={() => context.setFavouriteCity(context.favouriteCity.filter(item => item.sys.id !== value.sys.id))}></span>
 					</div>
 				)}
 			</div>
@@ -187,34 +162,28 @@ function RightSide({cityName, setCity, favouriteCity, setFavouriteCity, showCity
 	);
 }
 
-function WeatherInfo({activeTab, cityName, setCity, favouriteCity, setFavouriteCity}) {
+function WeatherInfo({activeTab}) {
+	const context = useContext(AppContext);
+
 	function addToFavoutites() {
-		const favouriteCitiesList = [...favouriteCity];
-		if(cityName !== '') {
-			favouriteCitiesList.push(cityName);
-			setFavouriteCity([...new Map(favouriteCitiesList.map((item) => [item["id"], item])).values()]);
-		} 
-		// favouriteCity.forEach((value) => {
-		// 	console.log(value.name);
-		// 	console.log(value.sys.id)
-		console.log(favouriteCity);
+		const favouriteCitiesList = [...context.favouriteCity];
+		if(context.cityName !== '') {
+			favouriteCitiesList.push(context.cityName);
+			context.setFavouriteCity([...new Map(favouriteCitiesList.map((item) => [item["id"], item])).values()]);
+		}
 	}
 	return(
 		<div className = {activeTab === 1 ? 'weather_info_tab active_content' : 'weather_info_tab'}>
-			<div className='degree'>{cityName?.main?.temp === undefined ? '0°' : Math.round(cityName?.main?.temp) + '°'}</div>
-			<img src={cityName?.weather?.[0]?.icon === undefined ? cloudImg : `http://openweathermap.org/img/wn/${cityName.weather[0].icon}.png`} alt="cloud" className='weather_icon' />
+			<div className='degree'>{context.cityName?.main?.temp === undefined ? '0°' : Math.round(context.cityName?.main?.temp) + '°'}</div>
+			<img src={context.cityName?.weather?.[0]?.icon === undefined ? cloudImg : `http://openweathermap.org/img/wn/${context.cityName.weather[0].icon}.png`} alt="cloud" className='weather_icon' />
 			<div className='weather_info_bottom'>
-				<span className='current_location'>{cityName.name === undefined ? 'Aktobe' : cityName.name}</span>
+				<span className='current_location'>{context.cityName.name === undefined ? 'Aktobe' : context.cityName.name}</span>
 				<button onClick={addToFavoutites} className='add_location_to_favourite'>
 					<img src={heartImg} alt="heart" className='heart_icon'/>
 				</button>
 			</div>
 		</div>
 	);
-}
-
-function WeatherList() {
-
 }
 
 function Tabs({activeTab, changeTab}) {
@@ -233,37 +202,38 @@ function Tabs({activeTab, changeTab}) {
 	);
 }
 
-function WeatherDetailedInfo({activeTab, cityName}) {	
+function WeatherDetailedInfo({activeTab}) {	
+	const context = useContext(AppContext);
+
 	return(
 		<div className = {activeTab === 2 ? 'detailed_info active_content' : 'detailed_info'}>
-			<span className='detailed_location'>{cityName?.name === undefined ? 'Aktobe' : cityName.name}</span>
-			<span className='details_item detailed_temperature'>{cityName?.main?.temp === undefined ? 'Temperature:' : `Temperature: ${Math.round(cityName.main.temp)}°`}</span>
-			<span className='details_item detailed_feeling'>{cityName?.main?.feels_like === undefined ? 'Feels like:' : `Feels like: ${Math.round(cityName.main.feels_like)}°`}</span>
-			<span className='details_item detailed_weather'>{cityName?.weather?.[0]?.main === undefined ? 'Weather:' : `Weather: ${cityName.weather[0].main}`}</span>
-			<span className='details_item detailed_sunrise'>{cityName?.sys?.sunrise === undefined ? 'Sunrise:' : `Sunrise: ${convertTime(cityName.sys.sunrise)}`}</span>
-			<span className='details_item detailed_sunset'>{cityName?.sys?.sunset === undefined ? 'Sunset:' : `Sunset: ${convertTime(cityName.sys.sunset)}`}</span>
+			<span className='detailed_location'>{context.cityName?.name === undefined ? 'Aktobe' : context.cityName.name}</span>
+			<span className='details_item detailed_temperature'>{context.cityName?.main?.temp === undefined ? 'Temperature:' : `Temperature: ${Math.round(context.cityName.main.temp)}°`}</span>
+			<span className='details_item detailed_feeling'>{context.cityName?.main?.feels_like === undefined ? 'Feels like:' : `Feels like: ${Math.round(context.cityName.main.feels_like)}°`}</span>
+			<span className='details_item detailed_weather'>{context.cityName?.weather?.[0]?.main === undefined ? 'Weather:' : `Weather: ${context.cityName.weather[0].main}`}</span>
+			<span className='details_item detailed_sunrise'>{context.cityName?.sys?.sunrise === undefined ? 'Sunrise:' : `Sunrise: ${convertTime(context.cityName.sys.sunrise)}`}</span>
+			<span className='details_item detailed_sunset'>{context.cityName?.sys?.sunset === undefined ? 'Sunset:' : `Sunset: ${convertTime(context.cityName.sys.sunset)}`}</span>
 		</div>
 	);
 }
 
-function WeatherForecast({activeTab, cityName, forecastCity, setForecastCity, showWeatherForecast}) {
+function WeatherForecast({activeTab, showWeatherForecast}) {
 	return(
 		<div className = {activeTab === 3 ? 'forecast_tab active_content' : 'forecast_tab'}>
 			<span className='forecast_location'>Location</span>
 			<WeatherForecastCard 
-			cityName={cityName}
-			showWeatherForecast={showWeatherForecast}
-			forecastCity={forecastCity}
-			setForecastCity={setForecastCity}/>
+			showWeatherForecast={showWeatherForecast}/>
 		</div>
 	);
 }
 
-function WeatherForecastCard({cityName, forecastCity, setForecastCity, showWeatherForecast}) {
+function WeatherForecastCard({showWeatherForecast}) {
+	const context = useContext(AppContext);
+
 	return(
 		<div>
-			{forecastCity !== undefined ? Object.values(forecastCity).map(item => 
-			<div className='forecast_card'>
+			{context.forecastCity !== undefined ? Object.values(context.forecastCity).map(item => 
+			<div className='forecast_card' key={uuid().slice(0, 6)}>
 				<div className='forecast_top'>
 					<span className='forecast_date'>{item?.dt === undefined ? '17 May' : convertForecastDay(item.dt)}</span>
 					<span className='forecast_hour'>{item?.dt === undefined ? '12:00' : convertTime(item.dt)}</span>
