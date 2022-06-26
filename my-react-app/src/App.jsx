@@ -5,8 +5,8 @@ import cloudImg from './img/cloud.svg';
 import heartImg from './img/heart.svg';
 import rainImg from './img/rain.svg';
 export default App;
-import store from './store/store';
-import { AddToFavourites, RemoveFromFavourites } from './actions/index';
+import { v4 as uuid } from 'uuid';
+import { useSelector, useDispatch } from 'react-redux';
 
 const URLS = {
 	WEATHER_MAIN_INFO: 'http://api.openweathermap.org/data/2.5/weather',
@@ -74,6 +74,7 @@ function FindCityInput({ cityName, setCity, showCityWeather, showWeatherForecast
 		setCity(e.target.value);
 		setForecastCity(e.target.value);
 	}
+	console.log(useSelector(state => state.favouriteCitiesList))
 	return (
 		<form onSubmit={handleSubmit}>
 			<label>
@@ -126,7 +127,7 @@ function LeftSide({ cityName, setCity, forecastCity, setForecastCity, showWeathe
 				activeTab={activeTab}
 				cityName={cityName}
 				setCity={setCity}
-				 />
+			/>
 			<WeatherDetailedInfo
 				activeTab={activeTab}
 				cityName={cityName} />
@@ -160,16 +161,24 @@ function RightSide({ cityName, setCity, showCityWeather, forecastCity, setForeca
 			.catch(error => alert('Error: ' + error));
 	}
 
+	const favouriteCitiesList = useSelector(state => state.favouriteCitiesList);
+
+	const dispatch = useDispatch();
+
+	const RemoveFromFavourites = (id) => {
+		dispatch({ type: 'REMOVE_FROM_FAVOURITES', id })
+	}
+
 	return (
 		<div className='right_side'>
 			<div className='right_side_header'>
 				Added Locations:
 			</div>
 			<div className='location_list'>
-				{store.getState().favouriteCitiesList.map(value =>
+				{favouriteCitiesList.map(value =>
 					<div className='location' key={value.cityName}>
 						<span onClick={(e) => { showCurrentCityWeather(e.target.textContent); showCurrentWeatherForecast(e.target.textContent) }}>{value.cityName}</span>
-						<span className='cross' onClick={() => store.dispatch(RemoveFromFavourites(value.id))}></span>
+						<span className='cross' onClick={() => RemoveFromFavourites(value.id)}></span>
 					</div>
 				)}
 			</div>
@@ -178,11 +187,10 @@ function RightSide({ cityName, setCity, showCityWeather, forecastCity, setForeca
 }
 
 function WeatherInfo({ activeTab, cityName, setCity }) {
-	function addToFavoutites() {
-		if (cityName !== '') {
-			store.dispatch(AddToFavourites(cityName.name));
-			console.log(store.getState().favouriteCitiesList);
-		}
+	const dispatch = useDispatch();
+
+	const AddToFavourites = () => {
+		if (cityName !== '') dispatch({ type: 'ADD_TO_FAVOURITES', id: uuid().slice(0, 6), cityName: cityName.name })
 	}
 	return (
 		<div className={activeTab === 1 ? 'weather_info_tab active_content' : 'weather_info_tab'}>
@@ -190,7 +198,7 @@ function WeatherInfo({ activeTab, cityName, setCity }) {
 			<img src={cityName?.weather?.[0]?.icon === undefined ? cloudImg : `http://openweathermap.org/img/wn/${cityName.weather[0].icon}.png`} alt="cloud" className='weather_icon' />
 			<div className='weather_info_bottom'>
 				<span className='current_location'>{cityName.name === undefined ? 'Aktobe' : cityName.name}</span>
-				<button onClick={addToFavoutites} className='add_location_to_favourite'>
+				<button onClick={AddToFavourites} className='add_location_to_favourite'>
 					<img src={heartImg} alt="heart" className='heart_icon' />
 				</button>
 			</div>
@@ -242,9 +250,9 @@ function WeatherForecast({ activeTab, cityName, forecastCity, setForecastCity, s
 
 function WeatherForecastCard({ cityName, forecastCity, setForecastCity, showWeatherForecast }) {
 	return (
-		<div>
-			{forecastCity !== undefined ? Object.values(forecastCity).map(item =>
-				<div className='forecast_card'>
+		<>
+			{forecastCity !== undefined ? Object.values(forecastCity).map((item, index) =>
+				<div className='forecast_card' key={index}>
 					<div className='forecast_top'>
 						<span className='forecast_date'>{item?.dt === undefined ? '17 May' : convertForecastDay(item.dt)}</span>
 						<span className='forecast_hour'>{item?.dt === undefined ? '12:00' : convertTime(item.dt)}</span>
@@ -260,6 +268,6 @@ function WeatherForecastCard({ cityName, forecastCity, setForecastCity, showWeat
 						</div>
 					</div>
 				</div>) : null}
-		</div>
+		</>
 	)
 }
